@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InvoiceFlow Ultimate | AI-Powered Finance Suite</title>
+  <!-- Tailwind CSS v3 + Font Awesome + Google Fonts + Chart.js + SheetJS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    body { transition: background-color 0.3s ease, color 0.3s ease; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    .dark ::-webkit-scrollbar-track { background: #1e293b; }
+    .dark ::-webkit-scrollbar-thumb { background: #475569; }
+    .glass-card { background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); border:1px solid rgba(255,255,255,0.2); }
+    .dark .glass-card { background: rgba(30,41,59,0.8); border:1px solid rgba(255,255,255,0.05); }
+    .active-tab { border-bottom: 2px solid #4f46e5; color: #4f46e5; font-weight:600; }
+    .dark .active-tab { border-bottom-color: #818cf8; color: #a5b4fc; }
+    .tab-btn { color: #6b7280; transition: all 0.2s; }
+    .dark .tab-btn { color: #9ca3af; }
+    @media print { body * { visibility: hidden; } #print-area, #print-area * { visibility: visible; } #print-area { position: absolute; top:0; left:0; width:100%; background:white; } .no-print { display:none; } }
+
+    /* AI Assistant Panel Styles */
+    #ai-assistant-panel {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 420px;
+      height: 100vh;
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(10px);
+      box-shadow: -4px 0 20px rgba(0,0,0,0.15);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
+      font-family: 'Inter', sans-serif;
+    }
+    .dark #ai-assistant-panel {
+      background: rgba(30, 41, 59, 0.98);
+      border-left-color: rgba(255,255,255,0.1);
+    }
+    .panel-header {
+      padding: 1rem;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: inherit;
+    }
+    .dark .panel-header { border-bottom-color: #374151; }
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .message {
+      display: flex;
+      margin-bottom: 0.5rem;
+    }
+    .user-message { justify-content: flex-end; }
+    .assistant-message { justify-content: flex-start; }
+    .message-content {
+      max-width: 80%;
+      padding: 0.6rem 1rem;
+      border-radius: 1.2rem;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+    .user-message .message-content {
+      background: #4f46e5;
+      color: white;
+      border-bottom-right-radius: 0.25rem;
+    }
+    .assistant-message .message-content {
+      background: #f3f4f6;
+      color: #1f2937;
+      border-bottom-left-radius: 0.25rem;
+    }
+    .dark .assistant-message .message-content {
+      background: #374151;
+      color: #f9fafb;
+    }
+    .input-area {
+      padding: 1rem;
+      border-top: 1px solid #e5e7eb;
+      background: inherit;
+    }
+    .dark .input-area { border-top-color: #374151; }
+    .input-group {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .input-group input {
+      flex: 1;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 2rem;
+      background: white;
+    }
+    .dark .input-group input {
+      background: #1f2937;
+      border-color: #4b5563;
+      color: white;
+    }
+    .icon-btn {
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 0.4rem;
+      border-radius: 50%;
+      transition: all 0.2s;
+    }
+    .icon-btn:hover { background: #e5e7eb; }
+    .dark .icon-btn:hover { background: #374151; }
+    .listening { background: #ef4444; color: white; }
+    .file-section {
+      margin-top: 0.5rem;
+      padding: 0.5rem;
+      background: #f9fafb;
+      border-radius: 0.75rem;
+    }
+    .dark .file-section { background: #1e293b; }
+    .file-info { font-size: 0.75rem; margin: 0.5rem 0; }
+    .analysis-result { font-size: 0.8rem; margin-top: 0.5rem; }
+    .ai-open-btn {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      width: 3.5rem;
+      height: 3.5rem;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      color: white;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 999;
+      transition: transform 0.2s;
+    }
+    .ai-open-btn:hover { transform: scale(1.05); }
+  </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900">
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <!-- Header with AI Toggle Button -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+      <div class="flex items-center gap-3">
+        <div class="bg-gradient-to-r from-indigo-600 to-purple-600 p-2 rounded-xl shadow-lg"><i class="fas fa-chart-line text-white text-2xl"></i></div>
+        <div><h1 class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">InvoiceFlow Ultimate</h1><p class="text-gray-500 text-sm">AI-Powered Invoicing + Analytics + Recurring</p></div>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button onclick="toggleDarkMode()" class="px-3 py-2 bg-white dark:bg-gray-800 rounded-lg shadow flex items-center gap-2"><i class="fas fa-moon dark:hidden"></i><i class="fas fa-sun hidden dark:inline-block"></i> Theme</button>
+        <button onclick="openInvoiceModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg shadow flex items-center gap-2"><i class="fas fa-plus"></i> New Invoice</button>
+        <button onclick="openExpenseModal()" class="px-4 py-2 bg-amber-600 text-white rounded-lg shadow"><i class="fas fa-wallet"></i> Expense</button>
+        <button onclick="exportAllData()" class="px-3 py-2 bg-emerald-600 text-white rounded-lg"><i class="fas fa-download"></i> Backup</button>
+        <button onclick="window.openAIAssistant()" class="px-3 py-2 bg-purple-600 text-white rounded-lg flex items-center gap-1"><i class="fas fa-robot"></i> AI Assist</button>
+      </div>
+    </div>
+
+    <!-- Dashboard Stats + Chart (same as original) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      <div class="lg:col-span-2 grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow border-l-4 border-indigo-500"><p class="text-gray-500 text-xs">Total Invoices</p><p id="statTotalInvoices" class="text-2xl font-bold">0</p></div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow border-l-4 border-emerald-500"><p class="text-gray-500 text-xs">Paid</p><p id="statPaidInvoices" class="text-2xl font-bold">0</p></div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow border-l-4 border-amber-500"><p class="text-gray-500 text-xs">Pending Revenue</p><p id="statPendingRevenue" class="text-2xl font-bold">$0</p></div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow border-l-4 border-purple-500"><p class="text-gray-500 text-xs">Total Revenue</p><p id="statTotalRevenue" class="text-2xl font-bold">$0</p></div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow border-l-4 border-rose-500 col-span-2"><p class="text-gray-500 text-xs">Total Expenses</p><p id="statTotalExpenses" class="text-2xl font-bold">$0</p></div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow border-l-4 border-sky-500"><p class="text-gray-500 text-xs">Net Profit</p><p id="statNetProfit" class="text-2xl font-bold">$0</p></div>
+      </div>
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-3"><canvas id="revenueTrendChart" height="150"></canvas><p class="text-center text-xs text-gray-500 mt-1">Last 6 months revenue</p></div>
+    </div>
+
+    <!-- Main Tabs (Invoices, Clients, Expenses, Recurring, Products, Settings) -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mb-8">
+      <div class="border-b border-gray-200 dark:border-gray-700 flex flex-wrap">
+        <button onclick="switchMainTab('invoices')" id="tabInvoicesBtn" class="tab-btn active-tab px-5 py-3 text-sm font-medium"><i class="fas fa-file-invoice mr-1"></i> Invoices</button>
+        <button onclick="switchMainTab('clients')" id="tabClientsBtn" class="tab-btn px-5 py-3 text-sm"><i class="fas fa-users mr-1"></i> Clients</button>
+        <button onclick="switchMainTab('expenses')" id="tabExpensesBtn" class="tab-btn px-5 py-3 text-sm"><i class="fas fa-receipt mr-1"></i> Expenses</button>
+        <button onclick="switchMainTab('recurring')" id="tabRecurringBtn" class="tab-btn px-5 py-3 text-sm"><i class="fas fa-clock mr-1"></i> Recurring</button>
+        <button onclick="switchMainTab('products')" id="tabProductsBtn" class="tab-btn px-5 py-3 text-sm"><i class="fas fa-boxes mr-1"></i> Products</button>
+        <button onclick="switchMainTab('settings')" id="tabSettingsBtn" class="tab-btn px-5 py-3 text-sm"><i class="fas fa-cog mr-1"></i> Settings</button>
+      </div>
+
+      <!-- Invoices Panel -->
+      <div id="invoicesPanel" class="p-5">
+        <div class="flex flex-wrap justify-between gap-3 mb-4"><div class="relative"><i class="fas fa-search absolute left-3 top-3 text-gray-400"></i><input type="text" id="searchInvoice" placeholder="Search..." class="pl-9 pr-3 py-2 border rounded-lg w-64 dark:bg-gray-700"></div><div class="flex gap-2"><select id="statusFilter" class="border rounded-lg px-3 dark:bg-gray-700"><option value="all">All Status</option><option>Draft</option><option>Sent</option><option>Paid</option></select><button onclick="exportCSVInvoices()" class="bg-emerald-100 text-emerald-700 px-3 rounded-lg"><i class="fas fa-file-csv"></i> CSV</button><button onclick="bulkMarkPaid()" class="bg-indigo-100 text-indigo-700 px-3 rounded-lg"><i class="fas fa-check-double"></i> Bulk Paid</button></div></div>
+        <div id="invoicesListContainer" class="overflow-x-auto"></div>
+      </div>
+      <div id="clientsPanel" class="p-5 hidden"><div class="flex justify-between mb-4"><h3 class="font-semibold">Manage Clients</h3><button onclick="openClientModal()" class="bg-indigo-600 text-white px-3 py-1 rounded"><i class="fas fa-plus"></i> Add Client</button></div><div id="clientsListContainer" class="grid md:grid-cols-3 gap-4"></div></div>
+      <div id="expensesPanel" class="p-5 hidden"><div class="flex justify-between mb-4"><h3 class="font-semibold">Expense Tracker</h3><button onclick="openExpenseModal()" class="bg-amber-600 text-white px-3 py-1 rounded"><i class="fas fa-plus"></i> Add Expense</button></div><div id="expensesListContainer" class="overflow-x-auto"></div></div>
+      <div id="recurringPanel" class="p-5 hidden"><div class="flex justify-between mb-4"><h3 class="font-semibold">Recurring Rules</h3><button onclick="openRecurringModal()" class="bg-purple-600 text-white px-3 py-1 rounded"><i class="fas fa-sync-alt"></i> New Recurring</button></div><div id="recurringListContainer" class="space-y-3"></div><button onclick="processRecurringNow()" class="mt-3 bg-blue-600 text-white px-4 py-1 rounded text-sm">Generate Due Recurring Invoices</button></div>
+      <div id="productsPanel" class="p-5 hidden"><div class="flex justify-between mb-4"><h3 class="font-semibold">Product / Service Catalog</h3><button onclick="openProductModal()" class="bg-teal-600 text-white px-3 py-1 rounded"><i class="fas fa-plus"></i> Add Product</button></div><div id="productsListContainer" class="grid md:grid-cols-3 gap-3"></div></div>
+      <div id="settingsPanel" class="p-5 hidden"><h3 class="font-semibold mb-3">Company Settings</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-sm">Company Name</label><input type="text" id="settingCompanyName" class="w-full border rounded px-3 py-2 dark:bg-gray-700"></div><div><label class="block text-sm">Currency</label><select id="settingCurrency" class="w-full border rounded px-3 py-2"><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="GBP">GBP (£)</option></select></div><div><label class="block text-sm">Default Tax (%)</label><input type="number" id="settingTaxRate" class="w-full border rounded px-3 py-2" value="0"></div><div><label class="block text-sm">Default Discount (%)</label><input type="number" id="settingDiscount" class="w-full border rounded px-3 py-2" value="0"></div></div><div class="mt-4"><button onclick="saveSettings()" class="bg-indigo-600 text-white px-4 py-2 rounded">Save Settings</button><button onclick="clearAllData()" class="ml-3 bg-red-600 text-white px-4 py-2 rounded">Reset Everything</button></div></div>
+    </div>
+  </div>
+
+  <!-- AI Assistant Side Panel -->
+  <div id="ai-assistant-panel" style="display: none;">
+    <div class="panel-header">
+      <h3 class="font-bold flex items-center gap-2"><i class="fas fa-robot text-purple-600"></i> AI Assistant</h3>
+      <button id="close-panel" class="icon-btn"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="chat-messages" class="chat-messages"></div>
+    <!-- QUICK ACTION BUTTONS -->
+    <div class="quick-actions flex flex-wrap gap-2 px-3 mb-2">
+      <button type="button" onclick="quickAsk('Show revenue summary')" class="quick-btn bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-200 text-xs px-3 py-1 rounded-full">Revenue</button>
+      <button type="button" onclick="quickAsk('Show expense summary')" class="quick-btn bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200 text-xs px-3 py-1 rounded-full">Expenses</button>
+      <button type="button" onclick="quickAsk('What invoices are overdue?')" class="quick-btn bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-200 text-xs px-3 py-1 rounded-full">Overdue</button>
+      <button type="button" onclick="quickAsk('Generate financial report')" class="quick-btn bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200 text-xs px-3 py-1 rounded-full">Report</button>
+    </div>
+    <div class="input-area">
+      <div class="input-group">
+        <input type="text" id="user-input" placeholder="Ask me anything...">
+        <button id="send-btn" class="icon-btn text-indigo-600"><i class="fas fa-paper-plane"></i></button>
+        <button id="voice-btn" class="icon-btn"><i class="fas fa-microphone"></i></button>
+      </div>
+      <div class="file-section">
+        <input type="file" id="file-upload" accept=".txt,.pdf,.csv,.json" style="display:none;">
+        <button id="upload-btn" class="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded" onclick="document.getElementById('file-upload').click()"><i class="fas fa-upload"></i> Upload File</button>
+        <button id="analyze-file-btn" class="text-xs bg-purple-100 dark:bg-purple-900 px-2 py-1 rounded ml-2"><i class="fas fa-chart-line"></i> Analyze</button>
+        <div id="file-info" class="file-info text-xs text-gray-500"></div>
+        <div id="file-analysis-results" class="analysis-result"></div>
+      </div>
+    </div>
+  </div>
+  <div class="ai-open-btn" onclick="window.openAIAssistant()"><i class="fas fa-comment-dots fa-lg"></i></div>
+
+  <!-- MODALS (Invoice, Client, Expense, Recurring, Product) - same as original for brevity but included -->
+  <div id="invoiceModal" class="fixed inset-0 bg-black/50 backdrop-blur z-50 hidden items-center justify-center p-4 overflow-auto"><div class="bg-white dark:bg-gray-800 rounded-xl max-w-4xl w-full p-5"><div class="flex justify-between"><h2 class="text-xl font-bold">Invoice</h2><button onclick="closeInvoiceModal()"><i class="fas fa-times"></i></button></div><form id="invoiceForm" onsubmit="saveInvoice(event)"><input type="hidden" id="invoiceId"><div class="grid md:grid-cols-2 gap-3"><div><label>Invoice #</label><input type="text" id="invNumber" class="w-full border rounded px-2 py-1" required></div><div><label>Date</label><input type="date" id="invDate" class="w-full border rounded px-2 py-1"></div><div><label>Due Date</label><input type="date" id="dueDate" class="w-full border rounded px-2 py-1"></div><div><label>Status</label><select id="invStatus" class="w-full border rounded"><option>Draft</option><option>Sent</option><option>Paid</option></select></div><div><label>From</label><input type="text" id="fromName" class="w-full border rounded"></div><div><label>Client</label><select id="clientSelect" onchange="updateClientFields()" class="w-full border rounded"><option value="">--Select--</option></select><input type="text" id="clientName" placeholder="New client" class="w-full border rounded mt-1"></div><div><label>Email</label><input type="email" id="clientEmail" class="w-full border rounded"></div><div><label>Address</label><input type="text" id="clientAddress" class="w-full border rounded"></div></div><div class="mt-3"><div class="flex justify-between"><label>Line Items</label><button type="button" onclick="addInvoiceItem()" class="text-indigo-600 text-sm"><i class="fas fa-plus"></i> Add</button></div><table class="w-full"><thead><tr><th>Description</th><th>Qty</th><th>Price</th><th>Total</th><th></th></tr></thead><tbody id="itemsTableBody"></tbody></table></div><div class="grid md:grid-cols-2 gap-3 mt-3"><div><label>Discount %</label><input type="number" id="discountPercent" value="0" step="0.1" class="w-full border rounded"></div><div><label>Tax %</label><input type="number" id="taxPercent" value="0" step="0.1" class="w-full border rounded"></div></div><div class="flex justify-end mt-3"><div class="text-right"><p>Subtotal: <span id="subtotalDisplay">$0</span></p><p>Discount: -<span id="discountDisplay">$0</span></p><p>Tax: <span id="taxDisplay">$0</span></p><p class="font-bold">Total: <span id="totalDisplay">$0</span></p></div></div><div class="flex justify-end gap-2 mt-3"><button type="button" onclick="closeInvoiceModal()">Cancel</button><button type="submit" class="bg-indigo-600 text-white px-4 py-1 rounded">Save</button></div></form></div></div>
+  <div id="clientModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center"><div class="bg-white dark:bg-gray-800 p-6 rounded-xl w-96"><h3>Client</h3><form id="clientForm" onsubmit="saveClient(event)"><input type="hidden" id="clientId"><input type="text" id="clientFullName" placeholder="Name" class="w-full border rounded my-2 p-2" required><input type="email" id="clientEmailAddr" placeholder="Email" class="w-full border rounded my-2 p-2"><input type="text" id="clientAddr" placeholder="Address" class="w-full border rounded my-2 p-2"><div class="flex justify-end gap-2"><button type="button" onclick="closeClientModal()">Cancel</button><button type="submit" class="bg-indigo-600 text-white px-3 py-1 rounded">Save</button></div></form></div></div>
+  <div id="expenseModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center"><div class="bg-white dark:bg-gray-800 p-6 rounded-xl w-96"><h3>Add Expense</h3><form id="expenseForm" onsubmit="saveExpense(event)"><input type="hidden" id="expenseId"><input type="text" id="expenseTitle" placeholder="Title" class="w-full border rounded my-2 p-2" required><input type="number" id="expenseAmount" placeholder="Amount" step="0.01" class="w-full border rounded my-2 p-2" required><input type="date" id="expenseDate" class="w-full border rounded my-2 p-2"><select id="expenseCategory" class="w-full border rounded my-2 p-2"><option>Office</option><option>Software</option><option>Travel</option><option>Other</option></select><div class="flex justify-end gap-2"><button type="button" onclick="closeExpenseModal()">Cancel</button><button type="submit" class="bg-amber-600 text-white px-3 py-1 rounded">Save</button></div></form></div></div>
+  <div id="recurringModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center"><div class="bg-white dark:bg-gray-800 p-6 rounded-xl w-[500px]"><h3>Recurring Rule</h3><form id="recurringForm" onsubmit="saveRecurringRule(event)"><input type="hidden" id="recurId"><input type="text" id="recClientName" placeholder="Client Name" class="w-full border rounded my-2 p-2" required><input type="text" id="recDescription" placeholder="Description" class="w-full border rounded my-2 p-2"><input type="number" id="recAmount" placeholder="Amount" step="0.01" class="w-full border rounded my-2 p-2" required><select id="recFrequency" class="w-full border rounded my-2 p-2"><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option><option value="yearly">Yearly</option></select><input type="date" id="recNextDate" class="w-full border rounded my-2 p-2"><div class="flex justify-end gap-2"><button type="button" onclick="closeRecurringModal()">Cancel</button><button type="submit" class="bg-purple-600 text-white px-3 py-1 rounded">Save</button></div></form></div></div>
+  <div id="productModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center"><div class="bg-white dark:bg-gray-800 p-6 rounded-xl w-96"><h3>Product</h3><form id="productForm" onsubmit="saveProduct(event)"><input type="hidden" id="productId"><input type="text" id="prodName" placeholder="Product name" class="w-full border rounded my-2 p-2" required><input type="number" id="prodPrice" placeholder="Price" step="0.01" class="w-full border rounded my-2 p-2" required><div class="flex justify-end"><button type="button" onclick="closeProductModal()">Cancel</button><button type="submit" class="bg-teal-600 text-white px-3 py-1 rounded">Save</button></div></form></div></div>
+
+  <script>
+    // ----------------------- ORIGINAL INVOICING CODE (unchanged but integrated) -----------------------
+    let invoices = [], clients = [], expenses = [], recurringRules = [], products = [];
+    let settings = { companyName: "MyCompany", currency: "USD", defaultTax: 0, defaultDiscount: 0 };
+    let revenueChart = null;
+    
+    function loadAllData() {
+      invoices = JSON.parse(localStorage.getItem('inv_ultimate_invoices') || '[]');
+      clients = JSON.parse(localStorage.getItem('inv_ultimate_clients') || '[]');
+      expenses = JSON.parse(localStorage.getItem('inv_ultimate_expenses') || '[]');
+      recurringRules = JSON.parse(localStorage.getItem('inv_ultimate_recurring') || '[]');
+      products = JSON.parse(localStorage.getItem('inv_ultimate_products') || '[]');
+      let s = localStorage.getItem('inv_ultimate_settings');
+      if(s) settings = JSON.parse(s);
+      if(invoices.length===0 && clients.length===0) generateDemoData();
+      renderAll();
+    }
+    function saveAllToLocal() {
+      localStorage.setItem('inv_ultimate_invoices', JSON.stringify(invoices));
+      localStorage.setItem('inv_ultimate_clients', JSON.stringify(clients));
+      localStorage.setItem('inv_ultimate_expenses', JSON.stringify(expenses));
+      localStorage.setItem('inv_ultimate_recurring', JSON.stringify(recurringRules));
+      localStorage.setItem('inv_ultimate_products', JSON.stringify(products));
+      localStorage.setItem('inv_ultimate_settings', JSON.stringify(settings));
+    }
+    function generateDemoData() {
+      invoices = [{ id: Date.now()+1, invNumber: "INV-001", issueDate: "2026-05-01", dueDate: "2026-05-31", status: "Paid", fromName: "Ultimate Ltd", clientName: "Acme Corp", clientEmail: "acme@demo.com", clientAddress: "123 St", items: [{ desc: "Consulting", qty: 1, price: 1200 }], discountPercent: 0, taxPercent: 0, subtotal:1200, discountAmt:0, taxAmt:0, total:1200 }];
+      clients = [{ id: Date.now()+10, name: "Acme Corp", email: "acme@demo.com", address: "123 St" }];
+      expenses = [{ id: Date.now()+20, title: "Server hosting", amount: 99, date: "2026-05-10", category: "Software" }];
+      products = [{ id: Date.now()+30, name: "Web Dev Service", price: 500 }];
+      saveAllToLocal();
+    }
+    function renderAll() { renderDashboard(); renderInvoicesList(); renderClientsList(); renderExpensesList(); renderRecurringList(); renderProductsList(); populateClientSelect(); updateSettingsUI(); if(revenueChart) revenueChart.destroy(); drawChart(); }
+    function renderDashboard() {
+      let totalInv = invoices.length, paidInv = invoices.filter(i=>i.status==='Paid').length;
+      let totalRev = invoices.reduce((s,i)=>s+(i.total||0),0);
+      let pendingRev = invoices.filter(i=>i.status!=='Paid').reduce((s,i)=>s+(i.total||0),0);
+      let totalExp = expenses.reduce((s,e)=>s+(e.amount||0),0);
+      document.getElementById('statTotalInvoices').innerText = totalInv;
+      document.getElementById('statPaidInvoices').innerText = paidInv;
+      document.getElementById('statTotalRevenue').innerText = `${getCurrency()}${totalRev.toFixed(2)}`;
+      document.getElementById('statPendingRevenue').innerText = `${getCurrency()}${pendingRev.toFixed(2)}`;
+      document.getElementById('statTotalExpenses').innerText = `${getCurrency()}${totalExp.toFixed(2)}`;
+      document.getElementById('statNetProfit').innerText = `${getCurrency()}${(totalRev - totalExp).toFixed(2)}`;
+    }
+    function getCurrency() { return settings.currency === 'USD' ? '$' : (settings.currency === 'EUR' ? '€' : '£'); }
+    function drawChart() {
+      const months = ['Jan','Feb','Mar','Apr','May','Jun'];
+      let revByMonth = [0,0,0,0,0,0];
+      invoices.forEach(inv => { if(inv.issueDate && inv.total) { let m = new Date(inv.issueDate).getMonth(); if(m>=0 && m<=5) revByMonth[m] += inv.total; } });
+      const ctx = document.getElementById('revenueTrendChart').getContext('2d');
+      revenueChart = new Chart(ctx, { type: 'line', data: { labels: months, datasets: [{ label: 'Revenue', data: revByMonth, borderColor: '#4f46e5', tension: 0.2, fill: false }] } });
+    }
+    function renderInvoicesList() { let search = document.getElementById('searchInvoice')?.value.toLowerCase()||''; let statusF = document.getElementById('statusFilter')?.value||'all'; let filtered = invoices.filter(i=>(i.invNumber.toLowerCase().includes(search)||i.clientName.toLowerCase().includes(search))&&(statusF==='all'||i.status===statusF)); let html=`<table class="min-w-full"><thead class="bg-gray-100 dark:bg-gray-700"><tr>${['#','Client','Due','Status','Total','Actions'].map(h=>`<th class="p-2 text-left">${h}</th>`).join('')}</tr></thead><tbody>`; filtered.forEach(i=>{html+=`<tr class="border-b"><td class="p-2">${i.invNumber}</td><td>${i.clientName}</td><td>${i.dueDate}</td><td><span class="px-2 py-0.5 rounded-full text-xs ${i.status==='Paid'?'bg-green-100 text-green-700':i.status==='Sent'?'bg-blue-100':'bg-yellow-100'}">${i.status}</span></td><td>${getCurrency()}${(i.total||0).toFixed(2)}</td><td><button onclick="editInvoice('${i.id}')" class="text-indigo-600 mr-2"><i class="fas fa-edit"></i></button><button onclick="deleteInvoice('${i.id}')" class="text-red-600 mr-2"><i class="fas fa-trash"></i></button><button onclick="downloadInvoicePDF('${i.id}')" class="text-emerald-600"><i class="fas fa-download"></i></button></td></tr>`;}); html+=`</tbody></table>`; document.getElementById('invoicesListContainer').innerHTML = filtered.length ? html : '<div class="text-center py-4">No invoices</div>'; }
+    function renderClientsList() { let container = document.getElementById('clientsListContainer'); if(!clients.length){container.innerHTML='<div class="col-span-3 text-center">No clients</div>';return;} container.innerHTML = clients.map(c=>`<div class="bg-gray-50 dark:bg-gray-700 p-3 rounded shadow"><div class="flex justify-between"><div><h4 class="font-semibold">${escapeHtml(c.name)}</h4><p class="text-xs">${c.email||''}</p></div><div><button onclick="editClient('${c.id}')" class="text-indigo-500"><i class="fas fa-edit"></i></button><button onclick="deleteClient('${c.id}')" class="text-red-500 ml-2"><i class="fas fa-trash"></i></button></div></div></div>`).join('');}
+    function renderExpensesList() { let tbody = `<table class="w-full"><thead><tr><th>Title</th><th>Amount</th><th>Date</th><th>Category</th><th></th></tr></thead><tbody>`; expenses.forEach(e=>{tbody+=`<tr><td>${e.title}</td><td>${getCurrency()}${e.amount}</td><td>${e.date}</td><td>${e.category}</td><td><button onclick="deleteExpense('${e.id}')" class="text-red-500"><i class="fas fa-trash"></i></button></td></tr>`;}); tbody+=`</tbody>`; document.getElementById('expensesListContainer').innerHTML = tbody; }
+    function renderRecurringList() { let container = document.getElementById('recurringListContainer'); if(!recurringRules.length){container.innerHTML='<div>No recurring rules</div>';return;} container.innerHTML = recurringRules.map(r=>`<div class="border p-3 rounded flex justify-between"><div><strong>${r.clientName}</strong> - ${r.description||'Item'} - ${getCurrency()}${r.amount} (${r.frequency})<br/><span class="text-xs">Next: ${r.nextDate}</span></div><div><button onclick="deleteRecurring('${r.id}')" class="text-red-500"><i class="fas fa-trash"></i></button></div></div>`).join('');}
+    function renderProductsList() { let container = document.getElementById('productsListContainer'); if(!products.length){container.innerHTML='<div>No products</div>';return;} container.innerHTML = products.map(p=>`<div class="border p-2 rounded flex justify-between"><span>${p.name} - ${getCurrency()}${p.price}</span><div><button onclick="editProduct('${p.id}')" class="text-indigo-500"><i class="fas fa-edit"></i></button><button onclick="deleteProduct('${p.id}')" class="text-red-500 ml-2"><i class="fas fa-trash"></i></button></div></div>`).join('');}
+    function populateClientSelect() { let sel = document.getElementById('clientSelect'); if(sel) sel.innerHTML = '<option value="">-- Select --</option>' + clients.map(c=>`<option value="${escapeHtml(c.name)}" data-email="${c.email||''}" data-addr="${c.address||''}">${c.name}</option>`).join(''); }
+    function updateClientFields() { let sel = document.getElementById('clientSelect'); let opt = sel.options[sel.selectedIndex]; if(opt && opt.value){ document.getElementById('clientName').value = opt.value; document.getElementById('clientEmail').value = opt.getAttribute('data-email')||''; document.getElementById('clientAddress').value = opt.getAttribute('data-addr')||''; } }
+    function addInvoiceItem(desc='', qty=1, price=0) { let tbody = document.getElementById('itemsTableBody'); let row = document.createElement('tr'); row.innerHTML = `<td><input class="item-desc w-full border rounded p-1" value="${escapeHtml(desc)}"></td><td><input type="number" class="item-qty w-20 border rounded p-1" value="${qty}"></td><td><input type="number" class="item-price w-24 border rounded p-1" value="${price}"></td><td><input class="item-total w-24 border rounded bg-gray-100" readonly></td><td><button type="button" onclick="removeItemRow(this)" class="text-red-500"><i class="fas fa-times"></i></button></td>`; tbody.appendChild(row); attachItemEvents(row); recalcTotals(); }
+    function attachItemEvents(row) { row.querySelectorAll('.item-qty, .item-price').forEach(inp=>inp.addEventListener('input',()=>recalcTotals())); recalcItemTotal(row); }
+    function recalcItemTotal(row) { let qty = parseFloat(row.querySelector('.item-qty')?.value)||0; let price = parseFloat(row.querySelector('.item-price')?.value)||0; let total = qty*price; let totalInput = row.querySelector('.item-total'); if(totalInput) totalInput.value = total.toFixed(2); }
+    function recalcTotals() { let subtotal = 0; document.querySelectorAll('#itemsTableBody tr').forEach(row=>{ recalcItemTotal(row); subtotal += parseFloat(row.querySelector('.item-total')?.value)||0; }); let discountP = parseFloat(document.getElementById('discountPercent')?.value)||0; let taxP = parseFloat(document.getElementById('taxPercent')?.value)||0; let discountAmt = subtotal*(discountP/100); let afterDiscount = subtotal-discountAmt; let taxAmt = afterDiscount*(taxP/100); let total = afterDiscount+taxAmt; document.getElementById('subtotalDisplay').innerHTML = `${getCurrency()}${subtotal.toFixed(2)}`; document.getElementById('discountDisplay').innerHTML = `${getCurrency()}${discountAmt.toFixed(2)}`; document.getElementById('taxDisplay').innerHTML = `${getCurrency()}${taxAmt.toFixed(2)}`; document.getElementById('totalDisplay').innerHTML = `${getCurrency()}${total.toFixed(2)}`; window._tempCalc = { subtotal, discountAmt, taxAmt, total };}
+    function removeItemRow(btn) { btn.closest('tr')?.remove(); recalcTotals(); }
+    function saveInvoice(e) { e.preventDefault(); let id = document.getElementById('invoiceId').value || Date.now().toString(); let items=[]; document.querySelectorAll('#itemsTableBody tr').forEach(row=>{ items.push({ desc: row.querySelector('.item-desc')?.value, qty: parseFloat(row.querySelector('.item-qty')?.value)||0, price: parseFloat(row.querySelector('.item-price')?.value)||0 }); }); let calc = window._tempCalc || {subtotal:0,total:0,discountAmt:0,taxAmt:0}; let invData = { id, invNumber: document.getElementById('invNumber').value, issueDate: document.getElementById('invDate').value, dueDate: document.getElementById('dueDate').value, status: document.getElementById('invStatus').value, fromName: document.getElementById('fromName').value, clientName: document.getElementById('clientName').value, clientEmail: document.getElementById('clientEmail').value, clientAddress: document.getElementById('clientAddress').value, items, discountPercent: parseFloat(document.getElementById('discountPercent').value)||0, taxPercent: parseFloat(document.getElementById('taxPercent').value)||0, subtotal: calc.subtotal, discountAmt: calc.discountAmt, taxAmt: calc.taxAmt, total: calc.total }; let idx = invoices.findIndex(i=>i.id==id); idx!==-1 ? invoices[idx]=invData : invoices.push(invData); saveAllToLocal(); renderAll(); closeInvoiceModal(); }
+    function editInvoice(id) { let inv = invoices.find(i=>i.id==id); if(inv) openInvoiceModal(inv); }
+    function deleteInvoice(id) { if(confirm('Delete?')){ invoices=invoices.filter(i=>i.id!=id); saveAllToLocal(); renderAll(); } }
+    function openInvoiceModal(inv=null) { document.getElementById('invoiceModal').classList.remove('hidden'); document.getElementById('invoiceModal').classList.add('flex'); if(inv){ document.getElementById('invoiceId').value=inv.id; document.getElementById('invNumber').value=inv.invNumber; document.getElementById('invDate').value=inv.issueDate; document.getElementById('dueDate').value=inv.dueDate; document.getElementById('invStatus').value=inv.status; document.getElementById('fromName').value=inv.fromName||''; document.getElementById('clientName').value=inv.clientName; document.getElementById('clientEmail').value=inv.clientEmail||''; document.getElementById('clientAddress').value=inv.clientAddress||''; document.getElementById('discountPercent').value=inv.discountPercent||0; document.getElementById('taxPercent').value=inv.taxPercent||0; document.getElementById('itemsTableBody').innerHTML=''; if(inv.items) inv.items.forEach(it=>addInvoiceItem(it.desc, it.qty, it.price)); else addInvoiceItem(); setTimeout(recalcTotals,10); } else { resetInvoiceForm(); } populateClientSelect(); }
+    function resetInvoiceForm() { document.getElementById('invoiceId').value=''; document.getElementById('invNumber').value='INV-'+Date.now(); document.getElementById('invDate').value=new Date().toISOString().slice(0,10); document.getElementById('dueDate').value=new Date(Date.now()+30*86400000).toISOString().slice(0,10); document.getElementById('invStatus').value='Draft'; document.getElementById('fromName').value=settings.companyName; document.getElementById('clientName').value=''; document.getElementById('clientEmail').value=''; document.getElementById('clientAddress').value=''; document.getElementById('discountPercent').value=settings.defaultDiscount; document.getElementById('taxPercent').value=settings.defaultTax; document.getElementById('itemsTableBody').innerHTML=''; addInvoiceItem(); recalcTotals(); }
+    function closeInvoiceModal() { document.getElementById('invoiceModal').classList.add('hidden'); }
+    function openClientModal(c=null){ let m=document.getElementById('clientModal'); m.classList.remove('hidden'); m.classList.add('flex'); if(c){ document.getElementById('clientId').value=c.id; document.getElementById('clientFullName').value=c.name; document.getElementById('clientEmailAddr').value=c.email||''; document.getElementById('clientAddr').value=c.address||'';} else{ document.getElementById('clientId').value=''; document.getElementById('clientFullName').value=''; document.getElementById('clientEmailAddr').value=''; document.getElementById('clientAddr').value='';} }
+    function closeClientModal(){ document.getElementById('clientModal').classList.add('hidden'); }
+    function saveClient(e){ e.preventDefault(); let id=document.getElementById('clientId').value||Date.now().toString(); let client={ id, name:document.getElementById('clientFullName').value, email:document.getElementById('clientEmailAddr').value, address:document.getElementById('clientAddr').value }; let idx=clients.findIndex(c=>c.id==id); idx!==-1?clients[idx]=client:clients.push(client); saveAllToLocal(); renderAll(); closeClientModal();}
+    function editClient(id){ let c=clients.find(c=>c.id==id); if(c) openClientModal(c);}
+    function deleteClient(id){ if(confirm('Delete client?')){ clients=clients.filter(c=>c.id!=id); saveAllToLocal(); renderAll();}}
+    function openExpenseModal(e=null){ let m=document.getElementById('expenseModal'); m.classList.remove('hidden'); m.classList.add('flex'); if(e){ document.getElementById('expenseId').value=e.id; document.getElementById('expenseTitle').value=e.title; document.getElementById('expenseAmount').value=e.amount; document.getElementById('expenseDate').value=e.date; document.getElementById('expenseCategory').value=e.category;} else { document.getElementById('expenseId').value=''; document.getElementById('expenseTitle').value=''; document.getElementById('expenseAmount').value=''; document.getElementById('expenseDate').value=new Date().toISOString().slice(0,10); document.getElementById('expenseCategory').value='Office';} }
+    function closeExpenseModal(){ document.getElementById('expenseModal').classList.add('hidden'); }
+    function saveExpense(e){ e.preventDefault(); let id=document.getElementById('expenseId').value||Date.now().toString(); let exp={ id, title:document.getElementById('expenseTitle').value, amount:parseFloat(document.getElementById('expenseAmount').value), date:document.getElementById('expenseDate').value, category:document.getElementById('expenseCategory').value }; let idx=expenses.findIndex(ex=>ex.id==id); idx!==-1?expenses[idx]=exp:expenses.push(exp); saveAllToLocal(); renderAll(); closeExpenseModal();}
+    function deleteExpense(id){ expenses=expenses.filter(e=>e.id!=id); saveAllToLocal(); renderAll();}
+    function openRecurringModal(rule=null){ let m=document.getElementById('recurringModal'); m.classList.remove('hidden'); m.classList.add('flex'); if(rule){ document.getElementById('recurId').value=rule.id; document.getElementById('recClientName').value=rule.clientName; document.getElementById('recDescription').value=rule.description||''; document.getElementById('recAmount').value=rule.amount; document.getElementById('recFrequency').value=rule.frequency; document.getElementById('recNextDate').value=rule.nextDate;} else{ document.getElementById('recurId').value=''; document.getElementById('recClientName').value=''; document.getElementById('recDescription').value=''; document.getElementById('recAmount').value=''; document.getElementById('recFrequency').value='monthly'; document.getElementById('recNextDate').value=new Date().toISOString().slice(0,10);} }
+    function closeRecurringModal(){ document.getElementById('recurringModal').classList.add('hidden'); }
+    function saveRecurringRule(e){ e.preventDefault(); let id=document.getElementById('recurId').value||Date.now().toString(); let rule={ id, clientName:document.getElementById('recClientName').value, description:document.getElementById('recDescription').value, amount:parseFloat(document.getElementById('recAmount').value), frequency:document.getElementById('recFrequency').value, nextDate:document.getElementById('recNextDate').value }; let idx=recurringRules.findIndex(r=>r.id==id); idx!==-1?recurringRules[idx]=rule:recurringRules.push(rule); saveAllToLocal(); renderAll(); closeRecurringModal();}
+    function deleteRecurring(id){ recurringRules=recurringRules.filter(r=>r.id!=id); saveAllToLocal(); renderAll();}
+    function processRecurringNow(){ let today=new Date().toISOString().slice(0,10); recurringRules.forEach(rule=>{ if(rule.nextDate<=today){ let invNum="REC-"+Date.now()+Math.random(); let newInv={ id:Date.now()+Math.random(), invNumber:invNum, issueDate:today, dueDate:new Date(Date.now()+30*86400000).toISOString().slice(0,10), status:"Sent", fromName:settings.companyName, clientName:rule.clientName, clientEmail:"", clientAddress:"", items:[{desc:rule.description||"Recurring service", qty:1, price:rule.amount}], discountPercent:0, taxPercent:0, subtotal:rule.amount, discountAmt:0, taxAmt:0, total:rule.amount }; invoices.push(newInv); let next=new Date(rule.nextDate); if(rule.frequency==='monthly') next.setMonth(next.getMonth()+1); else if(rule.frequency==='quarterly') next.setMonth(next.getMonth()+3); else next.setFullYear(next.getFullYear()+1); rule.nextDate=next.toISOString().slice(0,10); } }); saveAllToLocal(); renderAll(); alert("Recurring invoices generated."); }
+    function openProductModal(p=null){ let m=document.getElementById('productModal'); m.classList.remove('hidden'); m.classList.add('flex'); if(p){ document.getElementById('productId').value=p.id; document.getElementById('prodName').value=p.name; document.getElementById('prodPrice').value=p.price;} else{ document.getElementById('productId').value=''; document.getElementById('prodName').value=''; document.getElementById('prodPrice').value='';} }
+    function closeProductModal(){ document.getElementById('productModal').classList.add('hidden'); }
+    function saveProduct(e){ e.preventDefault(); let id=document.getElementById('productId').value||Date.now().toString(); let prod={ id, name:document.getElementById('prodName').value, price:parseFloat(document.getElementById('prodPrice').value) }; let idx=products.findIndex(p=>p.id==id); idx!==-1?products[idx]=prod:products.push(prod); saveAllToLocal(); renderAll(); closeProductModal();}
+    function editProduct(id){ let p=products.find(p=>p.id==id); if(p) openProductModal(p);}
+    function deleteProduct(id){ products=products.filter(p=>p.id!=id); saveAllToLocal(); renderAll();}
+    function updateSettingsUI(){ document.getElementById('settingCompanyName').value=settings.companyName; document.getElementById('settingCurrency').value=settings.currency; document.getElementById('settingTaxRate').value=settings.defaultTax; document.getElementById('settingDiscount').value=settings.defaultDiscount; }
+    function saveSettings(){ settings.companyName=document.getElementById('settingCompanyName').value; settings.currency=document.getElementById('settingCurrency').value; settings.defaultTax=parseFloat(document.getElementById('settingTaxRate').value)||0; settings.defaultDiscount=parseFloat(document.getElementById('settingDiscount').value)||0; saveAllToLocal(); renderAll(); alert('Settings saved');}
+    function exportCSVInvoices(){ let wsData = invoices.map(i=>({ Number:i.invNumber, Client:i.clientName, Total:i.total, Status:i.status, Date:i.issueDate })); let ws = XLSX.utils.json_to_sheet(wsData); let wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Invoices"); XLSX.writeFile(wb, `invoices_${Date.now()}.xlsx`); }
+    function bulkMarkPaid(){ if(confirm('Mark all filtered as Paid?')){ invoices.forEach(i=>{ if(i.status!=='Paid') i.status='Paid'; }); saveAllToLocal(); renderAll(); } }
+    async function downloadInvoicePDF(id){ let inv = invoices.find(i=>i.id==id); if(!inv) return; let div=document.createElement('div'); div.id='print-area'; div.className='p-8 bg-white'; div.innerHTML=`<div><h1>INVOICE ${inv.invNumber}</h1><p>Date:${inv.issueDate} Due:${inv.dueDate}</p><hr/><p><strong>${inv.fromName}</strong><br/>Bill To: ${inv.clientName}<br/>${inv.clientEmail}</p><table border="1" style="width:100%"><tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr>${inv.items.map(it=>`<tr><td>${it.desc}</td><td>${it.qty}</td><td>${getCurrency()}${it.price}</td><td>${getCurrency()}${it.qty*it.price}</td></tr>`).join('')}</table><p>Subtotal: ${getCurrency()}${inv.subtotal} Discount: ${getCurrency()}${inv.discountAmt} Tax: ${getCurrency()}${inv.taxAmt} Total: ${getCurrency()}${inv.total}</p></div>`; document.body.appendChild(div); let opt={ margin:[0.5,0.5,0.5,0.5], filename:`${inv.invNumber}.pdf` }; await html2pdf().set(opt).from(div).save(); div.remove(); }
+    function exportAllData(){ let data={invoices,clients,expenses,recurringRules,products,settings}; let a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'})); a.download='ultimate_backup.json'; a.click(); }
+    function restoreAllData(input){ let file=input.files[0]; if(!file) return; let reader=new FileReader(); reader.onload=e=>{ try{ let d=JSON.parse(e.target.result); if(d.invoices) invoices=d.invoices; if(d.clients) clients=d.clients; if(d.expenses) expenses=d.expenses; if(d.recurringRules) recurringRules=d.recurringRules; if(d.products) products=d.products; if(d.settings) settings=d.settings; saveAllToLocal(); renderAll(); alert('Restored'); }catch(err){alert('Invalid file');} }; reader.readAsText(file); input.value=''; }
+    function clearAllData(){ if(confirm('Delete ALL data?')){ localStorage.clear(); invoices=[]; clients=[]; expenses=[]; recurringRules=[]; products=[]; generateDemoData(); renderAll(); } }
+    function resetDemoData(){ if(confirm('Reset to demo data?')){ generateDemoData(); renderAll(); } }
+    function switchMainTab(tab){ document.getElementById('invoicesPanel').classList.toggle('hidden', tab!=='invoices'); document.getElementById('clientsPanel').classList.toggle('hidden', tab!=='clients'); document.getElementById('expensesPanel').classList.toggle('hidden', tab!=='expenses'); document.getElementById('recurringPanel').classList.toggle('hidden', tab!=='recurring'); document.getElementById('productsPanel').classList.toggle('hidden', tab!=='products'); document.getElementById('settingsPanel').classList.toggle('hidden', tab!=='settings'); document.querySelectorAll('.tab-btn').forEach(btn=>btn.classList.remove('active-tab')); document.getElementById(`tab${tab.charAt(0).toUpperCase()+tab.slice(1)}Btn`).classList.add('active-tab'); }
+    function toggleDarkMode(){ document.documentElement.classList.toggle('dark'); localStorage.setItem('theme', document.documentElement.classList.contains('dark')?'dark':'light'); }
+    function escapeHtml(str){ if(!str) return ''; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+    if(localStorage.getItem('theme')==='dark') document.documentElement.classList.add('dark');
+    
+    // ----------------------- AI ASSISTANT CLASS (Integrated) -----------------------
+// QUICK‑ASK helper – called by the UI quick‑action buttons
+function quickAsk(prompt) {
+  // Ensure the assistant instance exists
+  if (!window.aiAssistant) {
+    window.aiAssistant = new AIAssistant();
+  }
+  // Place the prompt into the input field and trigger sending
+  const input = document.getElementById('user-input');
+  if (input) {
+    input.value = prompt;
+    // Use the assistant's sendMessage method to handle UI updates
+    window.aiAssistant.sendMessage();
+  }
+}
+
+    class AIAssistant {
+      // existing class content
+      constructor() {
+        this.isListening = false;
+        this.recognition = null;
+        this.chatMessages = document.getElementById('chat-messages');
+        this.userInput = document.getElementById('user-input');
+        this.fileInfo = document.getElementById('file-info');
+        this.fileResults = document.getElementById('file-analysis-results');
+        this.init();
+      }
+      init() {
+        document.getElementById('send-btn').addEventListener('click', () => this.sendMessage());
+        this.userInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') this.sendMessage(); });
+        document.getElementById('voice-btn').addEventListener('click', () => this.toggleVoice());
+        document.getElementById('file-upload').addEventListener('change', (e) => this.handleFileUpload(e));
+        document.getElementById('analyze-file-btn').addEventListener('click', () => this.analyzeFile());
+        document.getElementById('close-panel').addEventListener('click', () => this.closePanel());
+        this.setupVoiceRecognition();
+        this.addMessage("Hi! I'm your AI assistant. I can help with invoice insights, file analysis, or answer questions.", 'assistant');
+      }
+      setupVoiceRecognition() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+          this.recognition = new SpeechRecognition();
+          this.recognition.continuous = false;
+          this.recognition.interimResults = false;
+          this.recognition.lang = 'en-US';
+          this.recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            this.userInput.value = transcript;
+            this.sendMessage();
+          };
+          this.recognition.onerror = () => { this.isListening = false; this.updateVoiceButton(); };
+          this.recognition.onend = () => { this.isListening = false; this.updateVoiceButton(); };
+        }
+      }
+      toggleVoice() {
+        if (!this.recognition) { this.addMessage('Voice not supported', 'assistant'); return; }
+        if (this.isListening) { this.recognition.stop(); } else { this.recognition.start(); this.addMessage('Listening...', 'assistant'); }
+        this.isListening = !this.isListening;
+        this.updateVoiceButton();
+      }
+      updateVoiceButton() { const btn = document.getElementById('voice-btn'); btn.classList.toggle('listening', this.isListening); btn.innerHTML = this.isListening ? '<i class="fas fa-microphone-slash"></i>' : '<i class="fas fa-microphone"></i>'; }
+      sendMessage() {
+        const message = this.userInput.value.trim();
+        if (!message) return;
+        this.addMessage(message, 'user');
+        this.userInput.value = '';
+        setTimeout(() => this.getAIResponse(message), 400);
+      }
+      addMessage(content, sender) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `message ${sender}-message`;
+        msgDiv.innerHTML = `<div class="message-content">${content}</div>`;
+        this.chatMessages.appendChild(msgDiv);
+        this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+      }
+      async getAIResponse(prompt) {
+        this.addMessage('...', 'assistant');
+        try {
+          let response = await this.simulateSmartResponse(prompt);
+          this.chatMessages.removeChild(this.chatMessages.lastChild);
+          this.addMessage(response, 'assistant');
+        } catch { this.chatMessages.removeChild(this.chatMessages.lastChild); this.addMessage('Sorry, error occurred.', 'assistant'); }
+      }
+      async simulateSmartResponse(prompt) {
+        await new Promise(r => setTimeout(r, 700));
+        const lower = prompt.toLowerCase();
+        if (lower.includes('invoice') || lower.includes('revenue')) {
+          let total = invoices.reduce((s,i)=>s+(i.total||0),0);
+          return `💰 Total revenue: ${getCurrency()}${total.toFixed(2)}. You have ${invoices.length} invoices, ${invoices.filter(i=>i.status==='Paid').length} paid.`;
+        }
+        if (lower.includes('expense')) {
+          let totalExp = expenses.reduce((s,e)=>s+e.amount,0);
+          return `📉 Total expenses: ${getCurrency()}${totalExp.toFixed(2)}. Top category: ${Object.entries(expenses.reduce((acc,e)=>{acc[e.category]=(acc[e.category]||0)+e.amount; return acc;},{})).sort((a,b)=>b[1]-a[1])[0]?.[0] || 'None'}.`;
+        }
+        if (lower.includes('help')) return "I can analyze your invoices, expenses, or uploaded files. Try 'show revenue' or upload a text file for insights.";
+        return `I'm your AI co-pilot. You asked: "${prompt}". I can provide business insights or analyze documents.`;
+      }
+      handleFileUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        this.fileInfo.innerHTML = `<p><strong>File:</strong> ${file.name} (${(file.size/1024).toFixed(1)} KB)</p>`;
+        this.uploadedFile = file;
+      }
+      async analyzeFile() {
+        const file = this.uploadedFile || document.getElementById('file-upload').files[0];
+        if (!file) { this.fileResults.innerHTML = '<p class="text-red-500">Please upload a file first.</p>'; return; }
+        this.fileResults.innerHTML = '<p>Analyzing...</p>';
+        try {
+          let content = '';
+          if (file.type.includes('text') || file.name.endsWith('.txt') || file.name.endsWith('.json')) {
+            content = await this.readFileAsText(file);
+          } else {
+            content = `[Binary file: ${file.name}] - advanced text extraction not available in demo.`;
+          }
+          const analysis = `📄 Analysis of "${file.name}":\n- Size: ${(file.size/1024).toFixed(1)} KB\n- Characters: ${content.length}\n- Estimated words: ${content.split(/\s+/).length}\n- First 200 chars: ${content.substring(0,200)}...`;
+          this.fileResults.innerHTML = `<div class="analysis-result text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded">${analysis.replace(/\n/g,'<br>')}</div>`;
+          this.addMessage(`Analyzed file: ${file.name} (${content.length} chars)`, 'assistant');
+        } catch(err) { this.fileResults.innerHTML = `<p class="text-red-500">Error: ${err.message}</p>`; }
+      }
+      readFileAsText(file) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsText(file); }); }
+      closePanel() { document.getElementById('ai-assistant-panel').style.display = 'none'; }
+      static openPanel() { document.getElementById('ai-assistant-panel').style.display = 'flex'; }
+    }
+    // Initialize AI Assistant after DOM and main invoice system
+    window.openAIAssistant = () => { AIAssistant.openPanel(); };
+    window.onload = () => {
+      loadAllData();
+      document.getElementById('searchInvoice')?.addEventListener('input',()=>renderInvoicesList());
+      document.getElementById('statusFilter')?.addEventListener('change',()=>renderInvoicesList());
+      document.getElementById('discountPercent')?.addEventListener('input',recalcTotals);
+      document.getElementById('taxPercent')?.addEventListener('input',recalcTotals);
+      window.aiAssistant = new AIAssistant();
+    };
+  </script>
+</body>
+</html>
